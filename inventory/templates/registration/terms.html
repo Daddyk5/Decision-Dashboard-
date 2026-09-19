@@ -1,2 +1,48 @@
 {% load static %}
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Terms and Conditions | Rice Enterprise</title><link rel="stylesheet" href="{% static 'css/theme.css' %}"></head><body><main style="max-width:780px;margin:0 auto;padding:48px 20px"><p style="color:#134074;font-size:12px;letter-spacing:.18em;text-transform:uppercase">Compliance</p><h1 style="color:#0b2545">Terms and Conditions</h1><section class="glass-card" style="padding:28px;line-height:1.7;color:#526579"><h2>Platform use</h2><p>Use this system only for authorized Rice Enterprise inventory, fulfillment, customer, and reporting operations. Credentials are personal and every material action is audit logged.</p><h2>Order fulfillment SLA</h2><p>Orders are subject to verified stock, agreed delivery windows, credit status, and operational confirmation. The operations team may contact the customer when an order needs review.</p><h2>Call recording compliance</h2><p>Agents must obtain and record customer consent before capturing call details, recordings, or follow-up notes. Escalate consent questions to a Team Lead.</p><h2>Credit limits</h2><p>Customer orders must remain within the approved credit limit. Finance or an authorized administrator may pause fulfillment for overdue balances.</p></section><p style="margin-top:24px"><a href="{% url 'register' %}" style="color:#134074;font-weight:700">Back to registration</a></p></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Terms and Conditions | Rice Enterprise</title>
+  <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+</head>
+<body class="compliance-shell">
+  <main class="compliance-page">
+    <div class="compliance-grid">
+      <section class="compliance-hero" aria-labelledby="terms-title">
+        <p class="compliance-kicker">Compliance</p>
+        <h1 id="terms-title">Terms and Conditions</h1>
+        <p>Operational rules for a rice distribution business: verified stock, accountable fulfilment, protected customer data, and role-based work across the warehouse and customer teams.</p>
+        <div class="compliance-metrics" aria-label="Operational safeguards">
+          <div class="compliance-metric"><strong>24/7</strong><span>Audit-ready activity records</span></div>
+          <div class="compliance-metric"><strong>SLA</strong><span>Controlled order fulfilment</span></div>
+          <div class="compliance-metric"><strong>RBAC</strong><span>Role-scoped access</span></div>
+        </div>
+      </section>
+      <section class="compliance-document" aria-label="Terms details">
+        <article>
+          <h2>Platform use</h2>
+          <p>Use this system only for authorized Rice Enterprise inventory, fulfilment, customer, and reporting operations. Credentials are personal, role-scoped, and subject to operational audit logging.</p>
+        </article>
+        <article>
+          <h2>Order fulfillment SLA</h2>
+          <p>Orders are subject to verified stock, agreed delivery windows, credit status, and operational approval. The operations team may contact the customer when an order requires review.</p>
+        </article>
+        <article>
+          <h2>Call recording compliance</h2>
+          <p>Agents must obtain and document customer consent before capturing call details, recordings, or follow-up notes. Escalate unresolved consent questions to a Team Lead.</p>
+        </article>
+        <article>
+          <h2>Credit limits</h2>
+          <p>Customer orders must remain within the approved credit limit. Finance or an authorized administrator may pause fulfilment for overdue balances or fraud risk.</p>
+        </article>
+        <div class="compliance-actions">
+          <a class="compliance-link" href="{% url 'register' %}">Back to registration</a>
+          <a class="compliance-secondary" href="{% url 'privacy' %}">Privacy Policy</a>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>

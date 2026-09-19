@@ -80,6 +80,149 @@ a {
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
   border-radius: 18px;
 }
+.compliance-shell {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+  background: var(--navy);
+}
+.compliance-shell::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(6, 23, 43, 0.95) 0%,
+      rgba(8, 29, 54, 0.82) 42%,
+      rgba(8, 29, 54, 0.56) 100%
+    ),
+    url("https://cdn1.katadata.co.id/media/images/thumb/2020/07/07/2020_07_07-14_12_28_fa46ad884a14762dbbe48be44915d781_960x640_thumb.jpg")
+      center / cover;
+  transform: scale(1.02);
+}
+.compliance-shell::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 18% 15%, rgba(42, 157, 143, 0.22), transparent 30%),
+    linear-gradient(180deg, rgba(238, 244, 248, 0.04), rgba(6, 23, 43, 0.22));
+  pointer-events: none;
+}
+.compliance-page {
+  position: relative;
+  z-index: 1;
+  width: min(100% - 32px, 1120px);
+  margin: 0 auto;
+  padding: 64px 0;
+}
+.compliance-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(320px, 1fr);
+  gap: 40px;
+  align-items: center;
+}
+.compliance-hero {
+  color: white;
+}
+.compliance-kicker {
+  margin: 0;
+  color: var(--mist);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+}
+.compliance-hero h1 {
+  margin: 12px 0 14px;
+  max-width: 580px;
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 1.02;
+  letter-spacing: 0;
+}
+.compliance-hero p {
+  max-width: 540px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 16px;
+  line-height: 1.75;
+}
+.compliance-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 28px;
+  max-width: 560px;
+}
+.compliance-metric {
+  min-height: 92px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.compliance-metric strong {
+  display: block;
+  color: white;
+  font-size: 24px;
+  line-height: 1;
+}
+.compliance-metric span {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.compliance-document {
+  border-radius: 8px;
+  padding: clamp(24px, 4vw, 40px);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34);
+}
+.compliance-document h2 {
+  margin: 0 0 8px;
+  color: var(--navy);
+  font-size: 18px;
+}
+.compliance-document p {
+  margin: 0;
+  color: #526579;
+  font-size: 15px;
+  line-height: 1.7;
+}
+.compliance-document article + article {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #d8e2eb;
+}
+.compliance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+.compliance-link,
+.compliance-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.compliance-link {
+  background: var(--blue);
+  color: white;
+}
+.compliance-secondary {
+  border: 1px solid #cdd9e3;
+  color: var(--blue);
+}
 .auth-input:not([type="checkbox"]),
 .settings-input {
   width: 100%;
@@ -197,5 +340,17 @@ a {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+}
+@media (max-width: 900px) {
+  .compliance-page {
+    padding: 36px 0;
+  }
+  .compliance-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .compliance-metrics {
+    grid-template-columns: 1fr;
   }
 }

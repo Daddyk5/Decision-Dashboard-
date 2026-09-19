@@ -1,2 +1,44 @@
 {% load static %}
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Privacy Policy | Rice Enterprise</title><link rel="stylesheet" href="{% static 'css/theme.css' %}"></head><body><main style="max-width:780px;margin:0 auto;padding:48px 20px"><p style="color:#134074;font-size:12px;letter-spacing:.18em;text-transform:uppercase">Compliance</p><h1 style="color:#0b2545">Privacy Policy</h1><section class="glass-card" style="padding:28px;line-height:1.7;color:#526579"><h2>Data storage</h2><p>Operational data is stored in encrypted Supabase PostgreSQL infrastructure and accessed through role-scoped Django services. Secrets are supplied through environment variables.</p><h2>Privacy and GDPR</h2><p>We collect only information needed to create accounts, fulfill orders, support customers, and maintain security. Requests for access, correction, or deletion can be sent to the system administrator.</p><h2>Audit trails</h2><p>Inventory, order, delivery, payment, and call changes are retained in audit history for operational traceability and compliance.</p></section><p style="margin-top:24px"><a href="{% url 'register' %}" style="color:#134074;font-weight:700">Back to registration</a></p></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Privacy Policy | Rice Enterprise</title>
+  <link rel="stylesheet" href="{% static 'css/theme.css' %}">
+</head>
+<body class="compliance-shell">
+  <main class="compliance-page">
+    <div class="compliance-grid">
+      <section class="compliance-hero" aria-labelledby="privacy-title">
+        <p class="compliance-kicker">Compliance</p>
+        <h1 id="privacy-title">Privacy Policy</h1>
+        <p>Data protection standards for rice warehouse, sales, customer service, and reporting workflows. Information stays limited, traceable, and available only to the roles that need it.</p>
+        <div class="compliance-metrics" aria-label="Privacy safeguards">
+          <div class="compliance-metric"><strong>Data</strong><span>Minimum collection standard</span></div>
+          <div class="compliance-metric"><strong>Logs</strong><span>Traceable business actions</span></div>
+          <div class="compliance-metric"><strong>Roles</strong><span>Scoped operational access</span></div>
+        </div>
+      </section>
+      <section class="compliance-document" aria-label="Privacy details">
+        <article>
+          <h2>Data storage</h2>
+          <p>Operational data is stored in secure PostgreSQL infrastructure and accessed through role-scoped Django services. Secrets are supplied via environment variables and protected by standard enterprise controls.</p>
+        </article>
+        <article>
+          <h2>Privacy and GDPR</h2>
+          <p>We collect only the information required to create accounts, fulfil orders, support customers, and maintain operational security. Requests for access, correction, or deletion should be sent to the system administrator.</p>
+        </article>
+        <article>
+          <h2>Audit trails</h2>
+          <p>Inventory, order, delivery, payment, and call changes are retained in audit history for operational traceability, accountability, and compliance review.</p>
+        </article>
+        <div class="compliance-actions">
+          <a class="compliance-link" href="{% url 'register' %}">Back to registration</a>
+          <a class="compliance-secondary" href="{% url 'terms' %}">Terms &amp; Conditions</a>
+        </div>
+      </section>
+    </div>
+  </main>
+</body>
+</html>
