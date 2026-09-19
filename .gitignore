@@ -1,0 +1,7 @@
+.env
+__pycache__/
+*.py[cod]
+db.sqlite3
+staticfiles/
+*.sqlite3-journal
+.venv/

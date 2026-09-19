@@ -1,0 +1,122 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rice Enterprise Operations Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            canvas: '#EEF4F8', navy: '#0B2545', slateblue: '#134074', softblue: '#8DA9C4',
+            teal: '#2A9D8F', alert: '#D90429'
+          },
+          boxShadow: { card: '0 8px 24px rgba(11, 37, 69, 0.07)' }
+        }
+      }
+    };
+  </script>
+  <style>
+    @keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .reveal { animation: rise .55s ease-out both; }
+    .reveal-2 { animation-delay: .08s; } .reveal-3 { animation-delay: .16s; } .reveal-4 { animation-delay: .24s; }
+    .chart-wrap { position: relative; height: 300px; }
+  </style>
+</head>
+<body class="min-h-screen bg-canvas text-slate-700 antialiased">
+  <header class="bg-navy text-white">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-5 lg:px-8">
+      <div>
+        <p class="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-softblue">Rice Enterprise</p>
+        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Operations Dashboard</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="hidden rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs sm:inline">Role: {{ entity_role }}</span>
+        <div class="hidden items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs sm:flex">
+          <span class="h-2 w-2 rounded-full bg-teal"></span><span>Live sync</span>
+        </div>
+        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-softblue/20 text-sm font-semibold">RE</div>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20">Log out</button></form>
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-7xl space-y-6 px-5 py-7 lg:px-8">
+    <section class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end reveal">
+      <div>
+        <p class="text-sm font-medium text-slateblue">Executive overview</p>
+        <h2 class="mt-1 text-2xl font-semibold tracking-tight text-navy">Inventory and fulfillment at a glance</h2>
+      </div>
+      <div class="flex flex-col items-start gap-3 sm:items-end">
+        <div class="flex items-center gap-2 text-sm text-slate-500"><span class="h-2 w-2 rounded-full bg-teal"></span>Updated {{ today|date:"M d, Y" }}</div>
+        <form method="get" class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm" aria-label="Filter dashboard by date range">
+          <label class="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">From<input type="date" name="from_date" value="{{ from_date }}" class="rounded-md border border-slate-200 px-2 py-1.5 text-sm font-normal text-navy outline-none transition focus:border-slateblue focus:ring-2 focus:ring-slateblue/20"></label>
+          <label class="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">To<input type="date" name="to_date" value="{{ to_date }}" class="rounded-md border border-slate-200 px-2 py-1.5 text-sm font-normal text-navy outline-none transition focus:border-slateblue focus:ring-2 focus:ring-slateblue/20"></label>
+          <button type="submit" class="rounded-md bg-navy px-3 py-2 text-sm font-semibold text-white transition hover:bg-slateblue focus:outline-none focus:ring-2 focus:ring-navy/30">Apply</button>
+          {% if from_date or to_date %}<a href="/" class="rounded-md px-2 py-2 text-sm font-medium text-slate-500 transition hover:bg-slate-50 hover:text-navy">Clear</a>{% endif %}
+        </form>
+      </div>
+    </section>
+
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <article class="reveal reveal-1 rounded-xl border border-slate-200 bg-white p-5 shadow-card">
+        <p class="text-sm font-medium text-slate-500">Current stock</p>
+        <p class="mt-4 text-3xl font-bold text-navy">{{ total_stock|floatformat:0 }} <span class="text-base font-medium text-slate-400">kg</span></p>
+        <p class="mt-2 text-xs text-slate-400">All active inventory batches</p>
+      </article>
+      <article class="reveal reveal-2 rounded-xl border border-slate-200 bg-white p-5 shadow-card">
+        <div class="flex items-start justify-between"><p class="text-sm font-medium text-slate-500">Expired / critical</p><span class="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-alert">Risk</span></div>
+        <p class="mt-4 text-3xl font-bold text-alert">{{ expired_stock|floatformat:0 }} <span class="text-base font-medium text-red-300">kg</span></p>
+        <p class="mt-2 text-xs text-slate-400">Expired stock volume</p>
+      </article>
+      <article class="reveal reveal-3 rounded-xl border border-slate-200 bg-white p-5 shadow-card">
+        <p class="text-sm font-medium text-slate-500">Pending deliveries</p>
+        <p class="mt-4 text-3xl font-bold text-slateblue">{{ pending_deliveries }}</p>
+        <p class="mt-2 text-xs text-slate-400">Not yet delivered</p>
+      </article>
+      <article class="reveal reveal-4 rounded-xl border border-slate-200 bg-white p-5 shadow-card">
+        <div class="flex items-start justify-between"><p class="text-sm font-medium text-slate-500">Unpaid receivables</p><span class="rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-alert">Collect</span></div>
+        <p class="mt-4 text-3xl font-bold text-alert">${{ unpaid_balance|floatformat:0 }}</p>
+        <p class="mt-2 text-xs text-slate-400">Outstanding customer balance</p>
+      </article>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-5">
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-card lg:col-span-3">
+        <div class="mb-5 flex items-start justify-between"><div><h3 class="font-semibold text-navy">Stock volume by rice variety</h3><p class="mt-1 text-sm text-slate-400">Volume in kilograms</p></div><span class="rounded-md bg-slate-50 px-2 py-1 text-xs font-medium text-slateblue">10,000 kg threshold</span></div>
+        <div class="chart-wrap"><canvas id="stockChart"></canvas></div>
+      </article>
+      <article class="rounded-xl border border-slate-200 bg-white p-5 shadow-card lg:col-span-2">
+        <div class="mb-5"><h3 class="font-semibold text-navy">Logistics pipeline status</h3><p class="mt-1 text-sm text-slate-400">Current delivery distribution</p></div>
+        <div class="chart-wrap"><canvas id="logisticsChart"></canvas></div>
+      </article>
+    </section>
+
+    <section class="grid gap-6 lg:grid-cols-2">
+      <article class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+        <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h3 class="font-semibold text-navy">Expiration risk matrix</h3><p class="mt-1 text-xs text-slate-400">Batches requiring attention</p></div><span class="rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-alert">{{ batches|length }} batches</span></div>
+        <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-400"><tr><th class="px-5 py-3 font-semibold">Batch</th><th class="px-5 py-3 font-semibold">Variety</th><th class="px-5 py-3 font-semibold">Qty</th><th class="px-5 py-3 font-semibold">Expiry</th><th class="px-5 py-3 font-semibold">Status</th></tr></thead><tbody class="divide-y divide-slate-100">{% for batch in batches %}<tr class="{% if batch.stock_flag == 'Expired' %}bg-red-50/60{% elif batch.stock_flag == 'Critical' %}bg-amber-50/60{% endif %}"><td class="whitespace-nowrap px-5 py-3 font-medium text-navy">#{{ batch.id }}</td><td class="whitespace-nowrap px-5 py-3">{{ batch.rice_type }}</td><td class="whitespace-nowrap px-5 py-3">{{ batch.qty_kg|floatformat:0 }} kg</td><td class="whitespace-nowrap px-5 py-3">{{ batch.expiry_date|date:"M d, Y" }}</td><td class="whitespace-nowrap px-5 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {% if batch.stock_flag == 'Expired' %}bg-red-100 text-alert{% elif batch.stock_flag == 'Critical' %}bg-amber-100 text-amber-700{% else %}bg-emerald-100 text-teal{% endif %}">{{ batch.stock_flag }}</span></td></tr>{% empty %}<tr><td colspan="5" class="px-5 py-10 text-center text-slate-400">No inventory batches found.</td></tr>{% endfor %}</tbody></table></div>
+      </article>
+      <article class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-card">
+        <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h3 class="font-semibold text-navy">Financial receivables</h3><p class="mt-1 text-xs text-slate-400">Customer payment status</p></div><span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slateblue">{{ payments|length }} payments</span></div>
+        <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-400"><tr><th class="px-5 py-3 font-semibold">Customer</th><th class="px-5 py-3 font-semibold">Order</th><th class="px-5 py-3 font-semibold">Amount due</th><th class="px-5 py-3 font-semibold">Delivery</th><th class="px-5 py-3 font-semibold">Status</th></tr></thead><tbody class="divide-y divide-slate-100">{% for payment in payments %}<tr><td class="whitespace-nowrap px-5 py-3 font-medium text-navy">{{ payment.order.customer_name }}</td><td class="whitespace-nowrap px-5 py-3">#{{ payment.order.id }}</td><td class="whitespace-nowrap px-5 py-3">${{ payment.amount_due|floatformat:0 }}</td><td class="whitespace-nowrap px-5 py-3">{{ payment.order.deliveries.all.0.scheduled_date|date:"M d, Y"|default:"-" }}</td><td class="whitespace-nowrap px-5 py-3"><span class="rounded-full px-2.5 py-1 text-xs font-semibold {% if payment.payment_status == 'Paid' %}bg-emerald-100 text-teal{% else %}bg-red-100 text-alert{% endif %}">{{ payment.payment_status }}</span></td></tr>{% empty %}<tr><td colspan="5" class="px-5 py-10 text-center text-slate-400">No receivables found.</td></tr>{% endfor %}</tbody></table></div>
+      </article>
+    </section>
+  </main>
+
+  {{ stock_by_variety|json_script:"stock-data" }}
+  {{ logistics|json_script:"logistics-data" }}
+  <script>
+    const palette = { navy: '#0B2545', slateblue: '#134074', softblue: '#8DA9C4', teal: '#2A9D8F' };
+    const stockData = JSON.parse(document.getElementById('stock-data').textContent);
+    const logisticsData = JSON.parse(document.getElementById('logistics-data').textContent);
+    new Chart(document.getElementById('stockChart'), { data: { labels: stockData.map(item => item.rice_type), datasets: [{ type: 'bar', label: 'Stock (kg)', data: stockData.map(item => item.total), backgroundColor: palette.slateblue, borderRadius: 5, maxBarThickness: 46 }, { type: 'line', label: 'Minimum threshold', data: stockData.map(() => 10000), borderColor: '#D90429', borderWidth: 2, borderDash: [6, 5], pointRadius: 0, tension: 0 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: true, position: 'bottom', labels: { usePointStyle: true, color: '#134074', padding: 18 } } }, scales: { y: { beginAtZero: true, grid: { color: '#E8EFF4' }, ticks: { color: '#8DA9C4' } }, x: { grid: { display: false }, ticks: { color: '#134074' } } } } });
+    const statusColors = { 'Delivered': palette.teal, 'In-Transit': palette.softblue, 'Pending': palette.navy };
+    new Chart(document.getElementById('logisticsChart'), { type: 'doughnut', data: { labels: logisticsData.map(item => item.delivery_status), datasets: [{ data: logisticsData.map(item => item.total), backgroundColor: logisticsData.map(item => statusColors[item.delivery_status] || palette.softblue), borderWidth: 0, hoverOffset: 5 }] }, options: { maintainAspectRatio: false, cutout: '68%', plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, padding: 18, color: '#134074', font: { size: 12 } } } } } });
+  </script>
+</body>
+</html>
