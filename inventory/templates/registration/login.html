@@ -3,6 +3,7 @@
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Sign in | Rice Enterprise</title><link rel="stylesheet" href="/static/css/theme.css"><script src="https://cdn.tailwindcss.com"></script><script>tailwind.config={theme:{extend:{colors:{navy:'#0B2545',slateblue:'#134074',softblue:'#8DA9C4',canvas:'#EEF4F8',alert:'#D90429'}}}};</script></head>
 <body class="relative flex min-h-screen items-center justify-center overflow-hidden bg-navy px-5 py-10 text-slate-700">
   <div class="absolute inset-0 bg-cover bg-center" style="background-image:url('https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=2200&q=85');"></div><div class="absolute inset-0 bg-navy/85"></div><div class="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,.65)_100%)]"></div>
+  {% include 'inventory/_toasts.html' %}
   <main class="w-full max-w-md">
     <div class="mb-8 text-center text-white"><p class="text-xs font-semibold uppercase tracking-[.22em] text-softblue">Rice Enterprise</p><h1 class="mt-2 text-3xl font-semibold tracking-tight">Secure operations access</h1><p class="mt-2 text-sm text-white/60">Sign in to continue to your workspace.</p></div>
     <section class="relative rounded-2xl border border-white/10 bg-white p-7 shadow-2xl">

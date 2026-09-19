@@ -1,8 +1,9 @@
 from django.db.models import Count, Q, Sum
 from django.http import HttpResponse
-from django.contrib.auth import get_user_model, login
+from django.contrib.auth import get_user_model, login, logout
 from django.contrib.auth.forms import PasswordChangeForm
-from django.contrib.auth.views import LoginView
+from django.contrib import messages
+from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.models import Group
 from django.contrib.auth.tokens import default_token_generator
@@ -18,31 +19,48 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
-from .decorators import customer_required, current_entity_role, role_required, user_has_role
-from .forms import CallbackRequestForm, CallLogForm, CustomerForm, CustomerPurchaseForm, InventoryBatchForm, OrderBookingForm, QuickCallForm, RegistrationForm, StockAdjustmentForm, TaskForm
+from . import catalog
+from .decorators import customer_required, current_entity_role, role_home_url_name, role_required, user_has_role
+from .forms import CallbackRequestForm, CallLogForm, CustomerForm, CustomerOrderForm, CustomerPurchaseForm, InventoryBatchForm, OrderBookingForm, QuickCallForm, RegistrationForm, StockAdjustmentForm, TaskForm
 from .models import CallLog, Customer, Delivery, InventoryBatch, Order, Payment, RegistrationRequest, StockAdjustment, Task
+from .profiles import PLACEHOLDER_ADDRESS, ensure_customer_profile
 
 
 class CustomLoginRedirectView(LoginView):
 	template_name = 'registration/login.html'
 	redirect_authenticated_user = True
 
+	def dispatch(self, request, *args, **kwargs):
+		# A session for an account with no usable workspace would bounce back to /login/ forever.
+		ensure_customer_profile(request.user)
+		if request.user.is_authenticated and not role_home_url_name(request.user):
+			logout(request)
+		return super().dispatch(request, *args, **kwargs)
+
 	def form_valid(self, form):
+		user = form.get_user()
+		ensure_customer_profile(user)
+		if not role_home_url_name(user):
+			# Refuse the sign-in instead of landing the user on a page that answers 403.
+			return redirect(f'{settings.LOGIN_URL}?error=unassigned')
 		response = super().form_valid(form)
 		self.request.session.set_expiry(1209600 if self.request.POST.get('remember_me') else 0)
 		return response
 
 	def get_success_url(self):
-		user = self.request.user
-		if user.is_superuser or user.groups.filter(name='Super Admin / Client').exists():
-			return '/'
-		if user.groups.filter(name='Team Lead').exists():
-			return '/tl/dashboard/'
-		if user.groups.filter(name='CSR Agent').exists():
-			return '/workstation/'
-		if user_has_role(user, 'customer'):
-			return '/portal/'
-		return '/login/?error=unassigned'
+		home_name = role_home_url_name(self.request.user)
+		return reverse(home_name) if home_name else settings.LOGIN_URL
+
+
+class CustomLogoutView(LogoutView):
+	next_page = '/login/'
+
+	def post(self, request, *args, **kwargs):
+		was_authenticated = request.user.is_authenticated
+		response = super().post(request, *args, **kwargs)
+		if was_authenticated:
+			messages.success(request, 'You have been signed out successfully.')
+		return response
 
 
 def register(request):
@@ -89,17 +107,7 @@ def confirm_email(request, uidb64, token):
 		registration = getattr(user, 'registration_request', None)
 		if registration and registration.role_requested == RegistrationRequest.Role.CUSTOMER:
 			user.groups.add(Group.objects.get_or_create(name='Customer')[0])
-			Customer.objects.get_or_create(
-				user=user,
-				defaults={
-					'company_name': registration.company_name or user.get_full_name(),
-					'contact_person': user.get_full_name(),
-					'email': user.email,
-					'phone': registration.phone,
-					'delivery_address': 'To be completed',
-					'credit_limit': 0,
-				},
-			)
+			ensure_customer_profile(user)
 		return redirect('confirm-success')
 	return render(request, 'registration/confirm_invalid.html', status=400)
 
@@ -185,6 +193,45 @@ def customer_purchase(request):
 			Payment.objects.create(order=order, amount_due=form.cleaned_data['total_amount'])
 		return redirect('customer-portal')
 	return render(request, 'inventory/form.html', {'form': form, 'title': 'Quick rice purchase', 'back_url': 'customer-portal'})
+
+
+@role_required('customer')
+def customer_create_order(request):
+	# Super Admins may open the page (role_required lets them through) but have no customer profile to order for.
+	customer = ensure_customer_profile(request.user)
+	address = customer.delivery_address if customer and customer.delivery_address != PLACEHOLDER_ADDRESS else ''
+	form = CustomerOrderForm(request.POST if request.method == 'POST' else None, initial={'delivery_address': address})
+	if request.method == 'POST':
+		if customer is None:
+			messages.error(request, 'Orders can only be placed from a customer account.')
+		elif form.is_valid():
+			data = form.cleaned_data
+			quote = data['quote']
+			with transaction.atomic():
+				order = Order(
+					customer=customer,
+					customer_name=customer.company_name,
+					order_date=timezone.localdate(),
+					qty_ordered=quote.kilograms,
+					total_amount=quote.total,
+					status=Order.Status.PENDING_APPROVAL,
+					rice_type=dict(catalog.grade_choices())[data['rice_grade']],
+					requested_delivery_date=data['target_delivery_date'],
+					delivery_address=data['delivery_address'],
+					notes=data['notes'],
+				)
+				order._change_reason = 'Placed through the customer portal'
+				order.save()
+			messages.success(request, f'Order #{order.pk} submitted successfully for Team Lead review!')
+			return redirect('customer-portal')
+	return render(request, 'inventory/customer_create_order.html', {
+		'form': form,
+		'catalog': catalog.browser_catalog(),
+		'is_preview': customer is None,
+		'portal_url': reverse('customer-portal') if customer else reverse(role_home_url_name(request.user)),
+		'min_lead_days': CustomerOrderForm.MIN_LEAD_DAYS,
+		'entity_role': request.entity_role,
+	})
 
 
 @customer_required
@@ -331,8 +378,8 @@ def customer_create(request):
 	form = CustomerForm(request.POST or None)
 	if form.is_valid():
 		form.save()
-		return redirect('customer-list')
-	return render(request, 'inventory/form.html', {'form': form, 'title': 'Add customer', 'back_url': 'customer-list'})
+		return redirect('customer-directory')
+	return render(request, 'inventory/form.html', {'form': form, 'title': 'Add customer', 'back_url': 'customer-directory'})
 
 
 @role_required('team_lead', 'csr_agent')
@@ -342,8 +389,8 @@ def customer_update(request, pk):
 	form = CustomerForm(request.POST or None, instance=customer)
 	if form.is_valid():
 		form.save()
-		return redirect('customer-list')
-	return render(request, 'inventory/form.html', {'form': form, 'title': f'Edit {customer.company_name}', 'back_url': 'customer-list'})
+		return redirect('customer-directory')
+	return render(request, 'inventory/form.html', {'form': form, 'title': f'Edit {customer.company_name}', 'back_url': 'customer-directory'})
 
 
 @role_required('team_lead')
@@ -352,8 +399,8 @@ def batch_create(request):
 	form = InventoryBatchForm(request.POST or None)
 	if form.is_valid():
 		form.save()
-		return redirect('workstation')
-	return render(request, 'inventory/form.html', {'form': form, 'title': 'Add rice batch', 'back_url': 'workstation'})
+		return redirect(role_home_url_name(request.user))
+	return render(request, 'inventory/form.html', {'form': form, 'title': 'Add rice batch', 'back_url': role_home_url_name(request.user)})
 
 
 @role_required('team_lead')
@@ -365,8 +412,8 @@ def stock_adjustment_create(request):
 		adjustment.requested_by = request.user
 		adjustment.is_approved = False
 		adjustment.save()
-		return redirect('workstation')
-	return render(request, 'inventory/form.html', {'form': form, 'title': 'Adjust stock', 'back_url': 'workstation'})
+		return redirect(role_home_url_name(request.user))
+	return render(request, 'inventory/form.html', {'form': form, 'title': 'Adjust stock', 'back_url': role_home_url_name(request.user)})
 
 
 @role_required('csr_agent')
@@ -387,8 +434,8 @@ def task_create(request):
 		task = form.save(commit=False)
 		task.assigned_by = request.user
 		task.save()
-		return redirect('workstation')
-	return render(request, 'inventory/form.html', {'form': form, 'title': 'Assign staff task', 'back_url': 'workstation'})
+		return redirect(role_home_url_name(request.user))
+	return render(request, 'inventory/form.html', {'form': form, 'title': 'Assign staff task', 'back_url': role_home_url_name(request.user)})
 
 
 @role_required('team_lead', 'csr_agent')
@@ -399,8 +446,8 @@ def task_update(request, pk):
 	form = TaskForm(request.POST or None, instance=task, assigning_user=request.user)
 	if form.is_valid():
 		form.save()
-		return redirect('workstation')
-	return render(request, 'inventory/form.html', {'form': form, 'title': f'Update {task.title}', 'back_url': 'workstation'})
+		return redirect(role_home_url_name(request.user))
+	return render(request, 'inventory/form.html', {'form': form, 'title': f'Update {task.title}', 'back_url': role_home_url_name(request.user)})
 
 
 @role_required('team_lead')
@@ -410,6 +457,7 @@ def tl_dashboard(request):
 		'csr_agents': Task.objects.filter(assigned_to__groups__name='CSR Agent').values('assigned_to__username').annotate(total=Count('id'), completed=Count('id', filter=Q(status=Task.Status.COMPLETED))).order_by('assigned_to__username'),
 		'escalated_calls': CallLog.objects.filter(escalated_to_tl=True).select_related('customer', 'csr_agent')[:30],
 		'pending_adjustments': StockAdjustment.objects.filter(is_approved=False).select_related('batch', 'requested_by')[:30],
+		'pending_orders': Order.objects.filter(status=Order.Status.PENDING_APPROVAL).select_related('customer').order_by('requested_delivery_date', 'id')[:30],
 	})
 
 

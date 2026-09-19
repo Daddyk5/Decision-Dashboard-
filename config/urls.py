@@ -15,7 +15,6 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
@@ -35,10 +34,12 @@ from inventory.views import (
     customer_list,
     customer_update,
     customer_callback,
+    customer_create_order,
     customer_orders,
     customer_portal,
     customer_purchase,
     CustomLoginRedirectView,
+    CustomLogoutView,
     confirm_email,
     confirm_success,
     dashboard,
@@ -75,11 +76,11 @@ urlpatterns = [
     path('confirm-success/', confirm_success, name='confirm-success'),
     path('terms/', terms, name='terms'),
     path('privacy/', privacy, name='privacy'),
-    path('logout/', LogoutView.as_view(next_page='/login/'), name='logout'),
+    path('logout/', CustomLogoutView.as_view(), name='logout'),
     path('', dashboard, name='dashboard'),
     path('workstation/', workstation, name='workstation'),
     path('tl/dashboard/', tl_dashboard, name='tl-dashboard'),
-    path('customers/', customer_list, name='customer-list'),
+    path('customers/', customer_list, name='customer-directory'),
     path('customers/new/', customer_create, name='customer-create'),
     path('customers/<int:pk>/edit/', customer_update, name='customer-update'),
     path('batches/new/', batch_create, name='batch-create'),
@@ -94,6 +95,7 @@ urlpatterns = [
     path('portal/', customer_portal, name='customer-portal'),
     path('portal/orders/', customer_orders, name='customer-orders'),
     path('portal/purchase/', customer_purchase, name='customer-purchase'),
+    path('portal/order/create/', customer_create_order, name='customer_create_order'),
     path('portal/callback/', customer_callback, name='customer-callback'),
     path('settings/', settings_panel, name='settings'),
     path('admin/', admin.site.urls),

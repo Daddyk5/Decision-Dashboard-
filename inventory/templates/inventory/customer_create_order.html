@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>New Order | Rice Enterprise</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{colors:{navy:'#0B2545',slateblue:'#134074',softblue:'#8DA9C4',teal:'#2A9D8F',canvas:'#EEF4F8',alert:'#D90429'}}}};</script>
+</head>
+<body class="min-h-screen bg-canvas text-slate-700 antialiased">
+{% include 'inventory/_toasts.html' %}
+
+<div class="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden="true">
+  <div class="absolute -left-24 top-32 h-72 w-72 rounded-full bg-softblue/40 blur-3xl"></div>
+  <div class="absolute -right-16 bottom-10 h-80 w-80 rounded-full bg-slateblue/20 blur-3xl"></div>
+</div>
+
+<header class="relative z-10 bg-[#0B2545] text-white">
+  <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
+    <div>
+      <nav aria-label="Breadcrumb" class="text-xs font-semibold uppercase tracking-[.18em] text-softblue">
+        <a href="{{ portal_url }}" class="hover:text-white">Portal</a>
+        <span aria-hidden="true" class="mx-2 text-white/40">&gt;</span>
+        <span aria-current="page" class="text-white">New Order</span>
+      </nav>
+      <h1 class="mt-1 text-xl font-semibold">Place a B2B rice order</h1>
+    </div>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="rounded-lg bg-white/10 px-3 py-2 text-sm hover:bg-white/20">Sign out</button></form>
+  </div>
+</header>
+
+<main class="relative z-10 mx-auto max-w-6xl px-5 py-8 lg:px-8">
+  {% if is_preview %}
+  <div class="mb-6 rounded-xl border border-alert/20 bg-alert/5 p-4 text-sm text-alert" role="note">
+    <strong class="font-semibold">Preview only.</strong> You are signed in as {{ entity_role }}. Orders can only be submitted from a customer account.
+  </div>
+  {% endif %}
+
+  <div class="grid gap-6 lg:grid-cols-3">
+    <section class="rounded-2xl border border-slate-200 bg-white/95 p-8 shadow-xl backdrop-blur-md lg:col-span-2" aria-labelledby="orderHeading">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 id="orderHeading" class="text-2xl font-semibold tracking-tight text-navy">Order details</h2>
+          <p class="mt-1 text-sm text-slate-500">A Team Lead reviews every order before it is confirmed.</p>
+        </div>
+        <span class="rounded-full bg-alert/10 px-3 py-1 text-xs font-semibold text-alert">{{ min_lead_days }}-day minimum lead time</span>
+      </div>
+
+      <form method="post" class="mt-6 space-y-6" id="orderForm">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="rounded-lg bg-red-50 p-3 text-sm text-alert">{{ form.non_field_errors }}</div>{% endif %}
+
+        <div>
+          <label for="{{ form.rice_grade.id_for_label }}" class="block text-sm font-semibold text-navy">{{ form.rice_grade.label }}</label>
+          <div class="mt-2">{{ form.rice_grade }}</div>
+          {% for error in form.rice_grade.errors %}<p class="mt-1 text-xs text-alert">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="sm:col-span-2">
+            <label for="{{ form.quantity.id_for_label }}" class="block text-sm font-semibold text-navy">{{ form.quantity.label }}</label>
+            <div class="mt-2">{{ form.quantity }}</div>
+            {% for error in form.quantity.errors %}<p class="mt-1 text-xs text-alert">{{ error }}</p>{% endfor %}
+          </div>
+          <div>
+            <label for="{{ form.unit.id_for_label }}" class="block text-sm font-semibold text-navy">{{ form.unit.label }}</label>
+            <div class="mt-2">{{ form.unit }}</div>
+            {% for error in form.unit.errors %}<p class="mt-1 text-xs text-alert">{{ error }}</p>{% endfor %}
+          </div>
+        </div>
+
+        <div>
+          <label for="{{ form.target_delivery_date.id_for_label }}" class="block text-sm font-semibold text-navy">{{ form.target_delivery_date.label }}</label>
+          <div class="mt-2">{{ form.target_delivery_date }}</div>
+          <p class="mt-1 text-xs text-slate-500">Earliest available date: {{ form.earliest_delivery|date:"M d, Y" }}.</p>
+          {% for error in form.target_delivery_date.errors %}<p class="mt-1 text-xs text-alert">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label for="{{ form.delivery_address.id_for_label }}" class="block text-sm font-semibold text-navy">{{ form.delivery_address.label }}</label>
+          <div class="mt-2">{{ form.delivery_address }}</div>
+          {% for error in form.delivery_address.errors %}<p class="mt-1 text-xs text-alert">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div>
+          <label for="{{ form.notes.id_for_label }}" class="block text-sm font-semibold text-navy">{{ form.notes.label }} <span class="font-normal text-slate-400">(optional)</span></label>
+          <div class="mt-2">{{ form.notes }}</div>
+          {% for error in form.notes.errors %}<p class="mt-1 text-xs text-alert">{{ error }}</p>{% endfor %}
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-6">
+          <a href="{{ portal_url }}" class="text-sm font-semibold text-slateblue hover:text-navy">Cancel</a>
+          <button type="submit" {% if is_preview %}disabled{% endif %} class="bg-[#134074] hover:bg-[#0B2545] text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all disabled:cursor-not-allowed disabled:opacity-50">Submit for approval</button>
+        </div>
+      </form>
+    </section>
+
+    <aside class="self-start rounded-2xl border border-slate-200 bg-white/95 p-8 shadow-xl backdrop-blur-md lg:sticky lg:top-6" aria-labelledby="summaryHeading">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="summaryHeading" class="text-lg font-semibold text-navy">Order summary</h2>
+        <span class="rounded-full bg-alert/10 px-3 py-1 text-xs font-semibold text-alert">Pending approval</span>
+      </div>
+
+      <div class="mt-5 rounded-xl bg-canvas p-4" aria-live="polite">
+        <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Estimated total</p>
+        <p id="sumTotal" class="mt-1 text-3xl font-bold text-navy">$0.00</p>
+      </div>
+
+      <dl class="mt-5 space-y-3 text-sm">
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Grade</dt><dd id="sumGrade" class="text-right font-medium text-navy">-</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Unit price</dt><dd id="sumPrice" class="text-right font-medium text-navy">-</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Metric tons</dt><dd id="sumTons" class="text-right font-medium text-navy">-</dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Est. fulfillment SLA</dt><dd id="sumSla" class="text-right font-medium text-navy">-</dd></div>
+      </dl>
+
+      <p class="mt-5 border-t border-slate-100 pt-4 text-xs leading-5 text-slate-500">Estimate only. The final price and delivery schedule are confirmed when a Team Lead approves your order.</p>
+    </aside>
+  </div>
+</main>
+
+{{ catalog|json_script:"catalog-data" }}
+<script>
+(function () {
+  var catalog = JSON.parse(document.getElementById('catalog-data').textContent);
+  var grade = document.getElementById('{{ form.rice_grade.id_for_label }}');
+  var qty = document.getElementById('{{ form.quantity.id_for_label }}');
+  var unit = document.getElementById('{{ form.unit.id_for_label }}');
+  var money = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+  var set = function (id, text) { document.getElementById(id).textContent = text; };
+
+  function slaDays(tons) {
+    var bands = catalog.slaBands;
+    for (var i = 0; i < bands.length; i++) { if (tons <= parseFloat(bands[i][0])) { return bands[i][1]; } }
+    return bands[bands.length - 1][1];
+  }
+
+  function update() {
+    var g = catalog.grades[grade.value];
+    var u = catalog.units[unit.value];
+    var q = parseFloat(qty.value);
+    qty.step = unit.value === 'bags' ? '1' : '0.01';
+    qty.min = unit.value === 'bags' ? '1' : '0.01';
+    set('sumGrade', g ? g.label : '-');
+    set('sumPrice', g ? money.format(parseFloat(g.price)) + ' / t' : '-');
+    if (!g || !u || !(q > 0)) {
+      set('sumTotal', money.format(0)); set('sumTons', '-'); set('sumSla', '-');
+      return;
+    }
+    var tons = (q * parseFloat(u.kg)) / 1000;
+    set('sumTotal', money.format(tons * parseFloat(g.price)));
+    set('sumTons', tons.toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' t');
+    set('sumSla', slaDays(tons) + ' business days');
+  }
+
+  [grade, qty, unit].forEach(function (el) {
+    el.addEventListener('input', update);
+    el.addEventListener('change', update);
+  });
+  update();
+})();
+</script>
+</body>
+</html>

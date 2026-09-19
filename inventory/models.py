@@ -53,11 +53,21 @@ class Customer(models.Model):
 
 
 class Order(models.Model):
+	class Status(models.TextChoices):
+		PENDING_APPROVAL = 'PENDING_APPROVAL', 'Pending approval'
+		CONFIRMED = 'CONFIRMED', 'Confirmed'
+
 	customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name='orders', null=True, blank=True)
 	customer_name = models.CharField(max_length=200)
 	order_date = models.DateField(default=timezone.localdate)
 	qty_ordered = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
 	total_amount = models.DecimalField(max_digits=12, decimal_places=2, validators=[MinValueValidator(0)])
+	# Orders created before the approval workflow existed (and staff-booked orders) are already confirmed.
+	status = models.CharField(max_length=20, choices=Status, default=Status.CONFIRMED)
+	rice_type = models.CharField(max_length=100, blank=True)
+	requested_delivery_date = models.DateField(null=True, blank=True)
+	delivery_address = models.TextField(blank=True)
+	notes = models.TextField(blank=True)
 	history = HistoricalRecords()
 
 	class Meta:

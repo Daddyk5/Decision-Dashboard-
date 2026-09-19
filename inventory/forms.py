@@ -1,3 +1,6 @@
+from datetime import timedelta
+from decimal import Decimal
+
 from django import forms
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
@@ -5,6 +8,7 @@ from django.db import transaction
 from django.db.models import Sum
 from django.utils import timezone
 
+from . import catalog
 from .models import CallLog, Customer, Delivery, InventoryBatch, Order, Payment, RegistrationRequest, StockAdjustment, Task
 
 
@@ -143,6 +147,49 @@ class CustomerPurchaseForm(forms.Form):
             available = InventoryBatch.objects.filter(rice_type__iexact=rice_type).aggregate(total=Sum('qty_kg'))['total'] or 0
             if available < quantity:
                 raise ValidationError(f'Only {available} kg of {rice_type} is currently available.')
+        return cleaned
+
+
+FIELD_CLASSES = 'w-full rounded-lg border border-slate-300 bg-white/80 px-3 py-2.5 text-navy shadow-sm focus:border-slateblue focus:outline-none focus:ring-2 focus:ring-softblue/50'
+
+
+class CustomerOrderForm(forms.Form):
+    """B2B order request. The total is always priced here, never taken from the browser."""
+
+    MIN_LEAD_DAYS = 3
+
+    rice_grade = forms.ChoiceField(choices=catalog.grade_choices(), label='Rice grain type & grade')
+    quantity = forms.DecimalField(min_value=Decimal('0.01'), max_digits=10, decimal_places=2, label='Quantity')
+    unit = forms.ChoiceField(choices=catalog.unit_choices(), initial='tons', label='Unit')
+    target_delivery_date = forms.DateField(label='Target delivery date', widget=forms.DateInput(attrs={'type': 'date'}))
+    delivery_address = forms.CharField(max_length=500, label='Shipping / delivery address', widget=forms.Textarea(attrs={'rows': 3}))
+    notes = forms.CharField(max_length=1000, required=False, label='Payment terms & notes', widget=forms.Textarea(attrs={'rows': 3, 'placeholder': 'Purchase order number, payment terms, loading / unloading instructions...'}))
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.earliest_delivery = timezone.localdate() + timedelta(days=self.MIN_LEAD_DAYS)
+        self.fields['target_delivery_date'].widget.attrs['min'] = self.earliest_delivery.isoformat()
+        for field in self.fields.values():
+            field.widget.attrs['class'] = FIELD_CLASSES
+
+    def clean_target_delivery_date(self):
+        target = self.cleaned_data['target_delivery_date']
+        if target < self.earliest_delivery:
+            raise ValidationError(f'Delivery must be at least {self.MIN_LEAD_DAYS} days away (earliest {self.earliest_delivery:%b %d, %Y}).')
+        return target
+
+    def clean(self):
+        cleaned = super().clean()
+        grade, unit, quantity = cleaned.get('rice_grade'), cleaned.get('unit'), cleaned.get('quantity')
+        if grade and unit and quantity is not None:
+            if unit == 'bags' and quantity != quantity.to_integral_value():
+                self.add_error('quantity', 'Bags must be a whole number.')
+            else:
+                quote = catalog.quote(grade, unit, quantity)
+                if quote.metric_tons > catalog.MAX_ORDER_TONS:
+                    self.add_error('quantity', f'Orders are limited to {catalog.MAX_ORDER_TONS:,} metric tons. Contact your account manager for larger volumes.')
+                else:
+                    cleaned['quote'] = quote
         return cleaned
 
 

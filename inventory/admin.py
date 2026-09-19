@@ -36,8 +36,8 @@ class InventoryBatchAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-	list_display = ('customer', 'customer_name', 'order_date', 'qty_ordered', 'total_amount')
-	list_filter = ('order_date',)
+	list_display = ('customer', 'customer_name', 'rice_type', 'order_date', 'qty_ordered', 'total_amount', 'status')
+	list_filter = ('status', 'order_date')
 	search_fields = ('customer_name',)
 
 

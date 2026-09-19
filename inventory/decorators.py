@@ -15,22 +15,70 @@ ROLE_GROUP_ALIASES = {
     'customer': ('Customer', 'Customer B2B'),
 }
 
+# Highest privilege first: a user holding several groups lands on their most privileged workspace.
+ROLE_PRECEDENCE = ('super_admin', 'team_lead', 'csr_agent', 'customer')
 
-def _normalized_group_names(*names):
-    normalized = set()
-    for name in names:
-        if not name:
-            continue
-        normalized.add(name.strip())
-        normalized.add(name.strip().lower())
-    return tuple(sorted(normalized))
+ROLE_HOME_URL_NAMES = {
+    'super_admin': 'dashboard',
+    'team_lead': 'tl-dashboard',
+    'csr_agent': 'workstation',
+    'customer': 'customer-portal',
+}
+
+
+def _normalize(name):
+    return ' '.join((name or '').split()).lower()
+
+
+def _group_names(user):
+    """Normalized names of the user's groups, so 'csr agent ' still matches 'CSR Agent'."""
+    cached = getattr(user, '_normalized_group_names', None)
+    if cached is None:
+        cached = frozenset(_normalize(name) for name in user.groups.values_list('name', flat=True))
+        user._normalized_group_names = cached
+    return cached
+
+
+def is_super_admin(user):
+    return bool(user and user.is_authenticated and (user.is_superuser or _normalize(ROLE_GROUPS['super_admin']) in _group_names(user)))
 
 
 def user_has_role(user, role):
     if not user or not user.is_authenticated:
         return False
-    allowed_names = _normalized_group_names(*ROLE_GROUP_ALIASES.get(role, (ROLE_GROUPS[role],)))
-    return user.groups.filter(name__in=allowed_names).exists() or user.groups.filter(name__iexact=ROLE_GROUPS.get(role, '')).exists() or user.groups.filter(name__iexact=ROLE_GROUPS[role]).exists()
+    allowed = {_normalize(name) for name in ROLE_GROUP_ALIASES.get(role, (ROLE_GROUPS[role],))}
+    return not allowed.isdisjoint(_group_names(user))
+
+
+def can_access(user, *roles):
+    """The single rule every role-guarded view and every role-aware link uses."""
+    if not user or not user.is_authenticated:
+        return False
+    return is_super_admin(user) or any(user_has_role(user, role) for role in roles)
+
+
+def resolve_role(user):
+    """The role key ('super_admin', 'team_lead', ...) the user works as, or None if unassigned."""
+    if not user or not user.is_authenticated:
+        return None
+    if is_super_admin(user):
+        return 'super_admin'
+    for role in ROLE_PRECEDENCE[1:]:
+        if user_has_role(user, role):
+            return role
+    return None
+
+
+def role_home_url_name(user):
+    """URL name of the page this user can always open after signing in, or None if there isn't one.
+
+    A customer without a Customer profile has no usable workspace (the portal would 403), so they
+    are treated the same as an unassigned account.
+    """
+    role = resolve_role(user)
+    if role == 'customer' and not hasattr(user, 'customer_profile'):
+        return None
+    return ROLE_HOME_URL_NAMES.get(role)
 
 
 def role_required(*roles):
@@ -38,11 +86,7 @@ def role_required(*roles):
         @wraps(view_func)
         @login_required
         def wrapped(request, *args, **kwargs):
-            if request.user.is_superuser:
-                return view_func(request, *args, **kwargs)
-            if request.user.groups.filter(name__iexact=ROLE_GROUPS['super_admin']).exists():
-                return view_func(request, *args, **kwargs)
-            if any(user_has_role(request.user, role) for role in roles):
+            if can_access(request.user, *roles):
                 return view_func(request, *args, **kwargs)
             raise PermissionDenied
         return wrapped
@@ -53,19 +97,14 @@ def customer_required(view_func):
     @wraps(view_func)
     @login_required
     def wrapped(request, *args, **kwargs):
-        if user_has_role(request.user, 'customer') and hasattr(request.user, 'customer_profile'):
+        from .profiles import ensure_customer_profile  # imported here because profiles imports this module
+
+        if ensure_customer_profile(request.user) is not None:
             return view_func(request, *args, **kwargs)
         raise PermissionDenied
     return wrapped
 
 
 def current_entity_role(user):
-    if user.is_superuser or user.groups.filter(name__iexact=ROLE_GROUPS['super_admin']).exists():
-        return ROLE_GROUPS['super_admin']
-    if user_has_role(user, 'team_lead'):
-        return ROLE_GROUPS['team_lead']
-    if user_has_role(user, 'csr_agent'):
-        return ROLE_GROUPS['csr_agent']
-    if user_has_role(user, 'customer'):
-        return ROLE_GROUPS['customer']
-    return 'Unassigned'
+    role = resolve_role(user)
+    return ROLE_GROUPS[role] if role else 'Unassigned'
