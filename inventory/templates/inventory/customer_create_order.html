@@ -16,13 +16,27 @@
 
 <header class="relative z-10 bg-[#0B2545] text-white">
   <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-5 py-5 lg:px-8">
-    <div>
-      <nav aria-label="Breadcrumb" class="text-xs font-semibold uppercase tracking-[.18em] text-softblue">
-        <a href="{{ portal_url }}" class="hover:text-white">Portal</a>
-        <span aria-hidden="true" class="mx-2 text-white/40">&gt;</span>
-        <span aria-current="page" class="text-white">New Order</span>
-      </nav>
-      <h1 class="mt-1 text-xl font-semibold">Place a B2B rice order</h1>
+    <div class="flex items-center gap-3">
+      <svg width="34" height="34" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0" aria-hidden="true">
+        <rect width="36" height="36" rx="10" fill="url(#riceGradOrder)"/>
+        <path d="M18 7C22 11 24 16 20 22C18.5 24.2 16 25 13 24C11 20 12 15 15 11C16 9.5 17 8 18 7Z" fill="white" fill-opacity="0.95"/>
+        <path d="M18 7C18 12 17 17 13 22" stroke="#0B2545" stroke-width="1.1" stroke-linecap="round" opacity="0.35"/>
+        <circle cx="24.5" cy="24.5" r="2.4" fill="#F2C94C"/>
+        <defs>
+          <linearGradient id="riceGradOrder" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+            <stop stop-color="#134074"/>
+            <stop offset="1" stop-color="#2A9D8F"/>
+          </linearGradient>
+        </defs>
+      </svg>
+      <div>
+        <nav aria-label="Breadcrumb" class="text-xs font-semibold uppercase tracking-[.18em] text-softblue">
+          <a href="{{ portal_url }}" class="hover:text-white">Portal</a>
+          <span aria-hidden="true" class="mx-2 text-white/40">&gt;</span>
+          <span aria-current="page" class="text-white">New Order</span>
+        </nav>
+        <h1 class="mt-1 text-xl font-semibold">Place a B2B rice order</h1>
+      </div>
     </div>
     <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="rounded-lg bg-white/10 px-3 py-2 text-sm hover:bg-white/20">Sign out</button></form>
   </div>

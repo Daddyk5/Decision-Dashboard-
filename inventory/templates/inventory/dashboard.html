@@ -30,16 +30,29 @@
 <body class="min-h-screen bg-canvas text-slate-700 antialiased">
   <header class="bg-navy text-white">
     <div class="mx-auto flex max-w-7xl items-center justify-between gap-6 px-5 py-5 lg:px-8">
-      <div>
-        <p class="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-softblue">Rice Enterprise</p>
-        <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Operations Dashboard</h1>
+      <div class="flex items-center gap-3">
+        <svg width="38" height="38" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" class="shrink-0" aria-hidden="true">
+          <rect width="36" height="36" rx="10" fill="url(#riceGradHeader)"/>
+          <path d="M18 7C22 11 24 16 20 22C18.5 24.2 16 25 13 24C11 20 12 15 15 11C16 9.5 17 8 18 7Z" fill="white" fill-opacity="0.95"/>
+          <path d="M18 7C18 12 17 17 13 22" stroke="#0B2545" stroke-width="1.1" stroke-linecap="round" opacity="0.35"/>
+          <circle cx="24.5" cy="24.5" r="2.4" fill="#F2C94C"/>
+          <defs>
+            <linearGradient id="riceGradHeader" x1="0" y1="0" x2="36" y2="36" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#134074"/>
+              <stop offset="1" stop-color="#2A9D8F"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div>
+          <p class="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-softblue">Rice Enterprise</p>
+          <h1 class="text-xl font-semibold tracking-tight sm:text-2xl">Operations Dashboard</h1>
+        </div>
       </div>
       <div class="flex items-center gap-4">
         <span class="hidden rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs sm:inline">Role: {{ entity_role }}</span>
         <div class="hidden items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs sm:flex">
           <span class="h-2 w-2 rounded-full bg-teal"></span><span>Live sync</span>
         </div>
-        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-softblue/20 text-sm font-semibold">RE</div>
         <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button type="submit" class="rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/20">Log out</button></form>
       </div>
     </div>
